@@ -15,14 +15,16 @@ var imagemin = require('gulp-imagemin');//压缩图片
 var htmlmin = require('gulp-htmlmin');//压缩html
 var cache = require('gulp-cache');
 var del = require('del');//清除文件
+var babel = require('gulp-babel');//转义js
 var runSequence = require('run-sequence');
+var watch = require('gulp-watch');
 
 //*********转义sass为css**************
 gulp.task('sass', function () {
   return gulp.src('app/sass/**/*.scss')
     .pipe(sass().on('error', sass.logError))
     .pipe(gulp.dest('app/css'))//先存在开发目录下，用于页面引用和压缩
-    .pipe(browserSync.reload({stream:true}));
+    .pipe(browserSync.stream());
 });
 
 //*********为css添加前缀**************
@@ -35,20 +37,42 @@ gulp.task('autoprefixer',function(){
         .pipe(gulp.dest('dist'))
 });
 
-//*********css压缩**************
-gulp.task('minCss', function (cb) {
+//*********拷贝css文件到目录**************
+gulp.task('copyCss',function (cb) {
   pump([
         gulp.src('app/css/**/*.css'),
+        gulp.dest('dist/css')
+    ],
+    cb
+  );
+});
+
+//*********css压缩**************
+gulp.task('minCss', ['copyCss'],function (cb) {
+  pump([
+        gulp.src(['dist/css/**/*.css','!dist/css/lib/**']),//排除lib库文件进行babel和压缩。防止对库文件压缩变名后产生错误
         cssnano(),
         gulp.dest('dist/css')
     ],
     cb
   );
 });
-//*********js压缩**************
-gulp.task('minJs', function (cb) {
+
+//*********拷贝js文件到目录**************
+gulp.task('copyJs',function (cb) {
   pump([
         gulp.src('app/js/**/*.js'),
+        gulp.dest('dist/js')
+    ],
+    cb
+  );
+});
+
+//*********js压缩**************
+gulp.task('minJs',['copyJs'],function (cb) {
+  pump([
+        gulp.src(['dist/js/**/*.js','!dist/js/lib/**']),//排除lib库文件进行babel和压缩。防止对库文件压缩变名后产生错误
+		babel({ presets: ['es2015']}),
         uglify(),
         gulp.dest('dist/js')
     ],
@@ -75,14 +99,15 @@ gulp.task('minHtml', function() {
 //*********同步服务并指定服务器地址根目录**************
 gulp.task('browserSync',function(){
 	 browserSync.init({server:'app'});
-})
+});
 
-//*********动态监测watch*********用于开发阶段的效果查看*****
+//*********动态监测watch*********用于开发阶段的效果查看*****建议参考：http://www.gulpjs.com.cn/docs/api/
 gulp.task('watch', function() {
-  gulp.watch('app/sass/**/*.scss', ['sass']);
-  gulp.watch('app/**/*.html', on('change',browserSync.reload({stream:true})));
-  gulp.watch('app/js/**/*.js', on('change',browserSync.reload({stream:true})));
-})
+  gulp.watch('app/sass/**/*.scss').on("change",browserSync.reload);
+  gulp.watch('app/css/**/*.css').on("change",browserSync.reload);
+  gulp.watch('app/**/*.html').on("change",browserSync.reload);
+  gulp.watch('app/js/**/*.js').on("change",browserSync.reload);
+});
 
 //*********根据html中的引用，如link和script，合并为一个文件但不压缩（以下采用了js和css的压缩插件）**************
 gulp.task('useref', function() {
