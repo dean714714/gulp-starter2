@@ -1,1 +1,3 @@
-# gulp-starter2
+gulp启动文件
+
+包括代码图片压缩，babel，实时监听...

@@ -73,7 +73,11 @@ gulp.task('minJs',['copyJs'],function (cb) {
   pump([
         gulp.src(['dist/js/**/*.js','!dist/js/lib/**']),//排除lib库文件进行babel和压缩。防止对库文件压缩变名后产生错误
 		babel({ presets: ['es2015']}),
-        uglify(),
+        uglify({
+			mangle: {reserved: ['require' ,'exports' ,'module' ,'$']},//直接mangle: true表示是否修改变量名（默认true），reserved指排除这些关键字不被修改
+			compress: true//类型：Boolean 默认：true 是否完全压缩
+            //preserveComments: 'all' //保留所有注释
+		}),
         gulp.dest('dist/js')
     ],
     cb
@@ -103,7 +107,7 @@ gulp.task('browserSync',function(){
 
 //*********动态监测watch*********用于开发阶段的效果查看*****建议参考：http://www.gulpjs.com.cn/docs/api/
 gulp.task('watch', function() {
-  gulp.watch('app/sass/**/*.scss').on("change",browserSync.reload);
+  gulp.watch('app/sass/**/*.scss',['sass']).on("change",browserSync.reload);//一旦变动就进行编译并自动刷新页面
   gulp.watch('app/css/**/*.css').on("change",browserSync.reload);
   gulp.watch('app/**/*.html').on("change",browserSync.reload);
   gulp.watch('app/js/**/*.js').on("change",browserSync.reload);
@@ -137,7 +141,10 @@ gulp.task('clean:dist', function() {
 
 //*********执行gulp任务_开发阶段**************
 gulp.task('default', function(callback) {
-  runSequence(['sass'], 'browserSync','watch',
+  runSequence(
+	'sass', 
+	'browserSync',
+	'watch',
     callback
   )
 })
