@@ -1,4 +1,5 @@
 var gulp = require('gulp');
+var browserify = require('browserify');
 var	gutil = require('gulp-util');
 var	concat = require('gulp-concat');//合并文件
 var	pump = require('pump');//用pump代替pipe
@@ -75,8 +76,9 @@ gulp.task('minJs',['copyJs'],function (cb) {
 		babel({ presets: ['es2015']}),
         uglify({
 			mangle: {reserved: ['require' ,'exports' ,'module' ,'$']},//直接mangle: true表示是否修改变量名（默认true），reserved指排除这些关键字不被修改
-			compress: true//类型：Boolean 默认：true 是否完全压缩
+			compress: true,//类型：Boolean 默认：true 是否完全压缩
             //preserveComments: 'all' //保留所有注释
+			ie8: true//打开ie8兼容模式，不然压缩后有可能在ie8及以下浏览器报错
 		}),
         gulp.dest('dist/js')
     ],
@@ -96,13 +98,22 @@ gulp.task('minImg', function() {
 //*********html压缩**************
 gulp.task('minHtml', function() {
   return gulp.src('app/**/*.html')
-    .pipe(htmlmin({collapseWhitespace: true}))
+    .pipe(htmlmin({
+        removeComments: true,//清除HTML注释
+        //collapseWhitespace: true,//压缩HTML
+        //collapseBooleanAttributes: true,//省略布尔属性的值 <input checked="true"/> ==> <input />
+        //removeEmptyAttributes: true,//删除所有空格作属性值 <input id="" /> ==> <input />
+        //removeScriptTypeAttributes: true,//删除<script>的type="text/javascript"
+        //removeStyleLinkTypeAttributes: true,//删除<style>和<link>的type="text/css"
+        minifyJS: true,//压缩页面JS
+        minifyCSS: true//压缩页面CSS
+    }))
     .pipe(gulp.dest('dist'));
 });
 
 //*********同步服务并指定服务器地址根目录**************
 gulp.task('browserSync',function(){
-	 browserSync.init({server:'app'});
+    browserSync.init({server:'app'});
 });
 
 //*********动态监测watch*********用于开发阶段的效果查看*****建议参考：http://www.gulpjs.com.cn/docs/api/
